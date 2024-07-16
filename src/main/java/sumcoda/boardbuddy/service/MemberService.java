@@ -5,12 +5,16 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sumcoda.boardbuddy.dto.MemberRequest;
+import sumcoda.boardbuddy.dto.MemberResponse;
 import sumcoda.boardbuddy.entity.Member;
 import sumcoda.boardbuddy.enumerate.MemberRole;
 import sumcoda.boardbuddy.exception.member.MemberSaveException;
 import sumcoda.boardbuddy.exception.member.NicknameAlreadyExistsException;
 import sumcoda.boardbuddy.exception.member.UsernameAlreadyExistsException;
+import sumcoda.boardbuddy.repository.GatherArticleRepository;
 import sumcoda.boardbuddy.repository.MemberRepository;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +22,8 @@ import sumcoda.boardbuddy.repository.MemberRepository;
 public class MemberService {
 
     private final MemberRepository memberRepository;
+
+    private final GatherArticleRepository gatherArticleRepository;
 
     // 비밀번호를 암호화 하기 위한 필드
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
@@ -91,5 +97,16 @@ public class MemberService {
         }
 
         return memberId;
+    }
+
+    /**
+     * 내가 작성한 모집글 조회
+     *
+     * @param username 회원의 username
+     * @return 내가 작성한 모집글 DTO 리스트
+     **/
+    @Transactional
+    public List<MemberResponse.GatherArticleDTO> getMyGatherArticles (String username) {
+        return gatherArticleRepository.findGatherArticleDTOByUsername(username);
     }
 }
