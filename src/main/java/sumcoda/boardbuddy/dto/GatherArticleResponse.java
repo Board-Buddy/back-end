@@ -28,10 +28,13 @@ public class GatherArticleResponse {
 
         private Integer currentParticipants;
 
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
         private LocalDateTime startDateTime;
 
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
         private LocalDateTime endDateTime;
 
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
         private LocalDateTime createdAt;
 
         private GatherArticleStatus status;
