@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import sumcoda.boardbuddy.enumerate.MemberRole;
+import sumcoda.boardbuddy.enumerate.ReviewType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -74,35 +75,50 @@ public class Member {
     @Column(nullable = false)
     private Integer buddyScore;
 
-    // 랭킹 점수 환산을 위한 참여 횟수 (매월 1일마다 초기화될 예정)
-    // 일반 로그인, 소셜 로그인 별도 설정 필요 없음
-    @Column(nullable = false)
-    private Integer monthlyJoinCount;
-
     // 프로필에서 보여주기 위한 참여 횟수
     // 일반 로그인, 소셜 로그인 별도 설정 필요 없음
     @Column(nullable = false)
-    private Integer totalJoinCount;
+    private Integer joinCount;
 
-    // 최고예요 횟수
+    // 랭킹 점수 환산을 위한 최고예요 횟수 (매월 1일마다 초기화될 예정)
     // 일반 로그인, 소셜 로그인 별도 설정 필요 없음
     @Column(nullable = false)
-    private Integer excellentCount;
+    private Integer monthlyExcellentCount;
 
-    // 좋아요 횟수
+    // 프로필에서 보여주기 위한 최고예요 횟수
     // 일반 로그인, 소셜 로그인 별도 설정 필요 없음
     @Column(nullable = false)
-    private Integer goodCount;
+    private Integer totalExcellentCount;
 
-    // 별로예요 횟수
+    // 랭킹 점수 환산을 위한 좋아요 횟수 (매월 1일마다 초기화될 예정)
     // 일반 로그인, 소셜 로그인 별도 설정 필요 없음
     @Column(nullable = false)
-    private Integer badCount;
+    private Integer monthlyGoodCount;
 
-    // 노쇼 횟수 (매월 1일마다 초기화될 예정)
+    // 프로필에서 보여주기 위한 좋아요 횟수
     // 일반 로그인, 소셜 로그인 별도 설정 필요 없음
     @Column(nullable = false)
-    private Integer noShowCount;
+    private Integer totalGoodCount;
+
+    // 랭킹 점수 환산을 위한 별로예요 횟수 (매월 1일마다 초기화될 예정)
+    // 일반 로그인, 소셜 로그인 별도 설정 필요 없음
+    @Column(nullable = false)
+    private Integer monthlyBadCount;
+
+    // 프로필에서 보여주기 위한 별로예요 횟수
+    // 일반 로그인, 소셜 로그인 별도 설정 필요 없음
+    @Column(nullable = false)
+    private Integer totalBadCount;
+
+    // 랭킹 점수 환산을 위한 노쇼 횟수 (매월 1일마다 초기화될 예정)
+    // 일반 로그인, 소셜 로그인 별도 설정 필요 없음
+    @Column(nullable = false)
+    private Integer monthlyNoShowCount;
+
+    // 랭킹 점수 환산을 위한 리뷰 보내기 횟수 (매월 1일마다 초기화될 예정)
+    // 일반 로그인, 소셜 로그인 별도 설정 필요 없음
+    @Column(nullable = false)
+    private Integer monthlySendReviewCount;
 
     // 자기소개
     // 일반 로그인, 소셜 로그인 마이페이지 설정 필요
@@ -138,10 +154,10 @@ public class Member {
 
     // 양방향 연관관계
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "member", cascade = CascadeType.REMOVE)
-    private List<BadgeImage> badgeImages = new ArrayList<>();
+    private List<sumcoda.boardbuddy.entity.BadgeImage> badgeImages = new ArrayList<>();
 
     @Builder
-    public Member(String username, String password, String nickname, String email, String phoneNumber, String sido, String sigu, String dong, Integer radius, Integer buddyScore, Integer monthlyJoinCount, Integer totalJoinCount, Integer excellentCount, Integer goodCount, Integer badCount, Integer noShowCount, String description, Integer rank, MemberRole memberRole, ProfileImage profileImage) {
+    public Member(String username, String password, String nickname, String email, String phoneNumber, String sido, String sigu, String dong, Integer radius, Integer buddyScore, Integer joinCount, Integer monthlyExcellentCount, Integer totalExcellentCount, Integer monthlyGoodCount, Integer totalGoodCount, Integer monthlyBadCount, Integer totalBadCount, Integer monthlyNoShowCount, Integer monthlySendReviewCount, String description, Integer rank, MemberRole memberRole, ProfileImage profileImage) {
         this.username = username;
         this.password = password;
         this.nickname = nickname;
@@ -152,12 +168,15 @@ public class Member {
         this.dong = dong;
         this.radius = radius;
         this.buddyScore = buddyScore;
-        this.monthlyJoinCount = monthlyJoinCount;
-        this.totalJoinCount = totalJoinCount;
-        this.excellentCount = excellentCount;
-        this.goodCount = goodCount;
-        this.badCount = badCount;
-        this.noShowCount = noShowCount;
+        this.joinCount = joinCount;
+        this.monthlyExcellentCount = monthlyExcellentCount;
+        this.totalExcellentCount = totalExcellentCount;
+        this.monthlyGoodCount = monthlyGoodCount;
+        this.totalGoodCount = totalGoodCount;
+        this.monthlyBadCount = monthlyBadCount;
+        this.totalBadCount = totalBadCount;
+        this.monthlyNoShowCount = monthlyNoShowCount;
+        this.monthlySendReviewCount = monthlySendReviewCount;
         this.description = description;
         this.rank = rank;
         this.memberRole = memberRole;
@@ -165,7 +184,7 @@ public class Member {
     }
 
     // 직접 빌더 패턴의 생성자를 활용하지 말고 해당 메서드를 활용하여 엔티티 생성
-    public static Member buildMember(String username, String password, String nickname, String email, String phoneNumber, String sido, String sigu, String dong, Integer radius, Integer buddyScore, Integer monthlyJoinCount, Integer totalJoinCount, Integer excellentCount, Integer goodCount, Integer badCount, Integer noShowCount, String description, Integer rank, MemberRole memberRole, ProfileImage profileImage) {
+    public static Member buildMember(String username, String password, String nickname, String email, String phoneNumber, String sido, String sigu, String dong, Integer radius, Integer buddyScore, Integer joinCount, Integer monthlyExcellentCount, Integer totalExcellentCount, Integer monthlyGoodCount, Integer totalGoodCount, Integer monthlyBadCount, Integer totalBadCount, Integer monthlyNoShowCount, Integer monthlySendReviewCount, String description, Integer rank, MemberRole memberRole, ProfileImage profileImage) {
         return Member.builder()
                 .username(username)
                 .password(password)
@@ -177,12 +196,15 @@ public class Member {
                 .dong(dong)
                 .radius(radius)
                 .buddyScore(buddyScore)
-                .monthlyJoinCount(monthlyJoinCount)
-                .totalJoinCount(totalJoinCount)
-                .excellentCount(excellentCount)
-                .goodCount(goodCount)
-                .badCount(badCount)
-                .noShowCount(noShowCount)
+                .joinCount(joinCount)
+                .monthlyExcellentCount(monthlyExcellentCount)
+                .totalExcellentCount(totalExcellentCount)
+                .monthlyGoodCount(monthlyGoodCount)
+                .totalGoodCount(totalGoodCount)
+                .monthlyBadCount(monthlyBadCount)
+                .totalBadCount(totalBadCount)
+                .monthlyNoShowCount(monthlyNoShowCount)
+                .monthlySendReviewCount(monthlySendReviewCount)
                 .description(description)
                 .rank(rank)
                 .memberRole(memberRole)
@@ -228,7 +250,7 @@ public class Member {
 
     // Member 1 <-> N BadgeImage
     // 양방향 연관관계 편의 메서드
-    public void addBadgeImage(BadgeImage badgeImage) {
+    public void addBadgeImage(sumcoda.boardbuddy.entity.BadgeImage badgeImage) {
         this.badgeImages.add(badgeImage);
 
         if (badgeImage.getMember() != this) {
@@ -267,5 +289,31 @@ public class Member {
     // Member 반경 수정 메서드
     public void assignRadius(Integer radius) {
         this.radius = radius;
+    }
+
+    // 리뷰 카운트 증가 메서드
+    public void assignReviewCount(ReviewType reviewType) {
+        switch (reviewType) {
+            case EXCELLENT:
+                this.monthlyExcellentCount++;
+                this.totalExcellentCount++;
+                break;
+            case GOOD:
+                this.monthlyGoodCount++;
+                this.totalGoodCount++;
+                break;
+            case BAD:
+                this.monthlyBadCount++;
+                this.totalBadCount++;
+                break;
+            case NOSHOW:
+                this.monthlyNoShowCount++;
+                break;
+        }
+    }
+
+    // 리뷰 보낸 횟수 증가 메서드
+    public void assignSendReviewCount() {
+        this.monthlySendReviewCount++;
     }
 }
