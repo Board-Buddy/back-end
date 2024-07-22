@@ -5,14 +5,15 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sumcoda.boardbuddy.dto.MemberRequest;
-import sumcoda.boardbuddy.dto.MemberResponse;
 import sumcoda.boardbuddy.dto.NearPublicDistrictResponse;
 import sumcoda.boardbuddy.dto.PublicDistrictResponse;
 import sumcoda.boardbuddy.entity.Member;
 import sumcoda.boardbuddy.enumerate.MemberRole;
+import sumcoda.boardbuddy.enumerate.ReviewType;
 import sumcoda.boardbuddy.exception.member.*;
 import sumcoda.boardbuddy.exception.publicDistrict.PublicDistrictNotFoundException;
 import sumcoda.boardbuddy.repository.MemberRepository;
+import sumcoda.boardbuddy.repository.memberGatherArticle.MemberGatherArticleRepository;
 import sumcoda.boardbuddy.repository.publicDistrict.PublicDistrictRepository;
 
 import java.util.List;
@@ -32,6 +33,7 @@ public class MemberService {
 
     // 비밀번호를 암호화 하기 위한 필드
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
+    private final MemberGatherArticleRepository memberGatherArticleRepository;
 
     /**
      * 아이디 중복검사
@@ -94,6 +96,9 @@ public class MemberService {
                 0,
                 0,
                 0,
+                0,
+                0,
+                0,
                 null,
                 null,
                 MemberRole.USER,
@@ -102,35 +107,6 @@ public class MemberService {
         if (memberId == null) {
             throw new MemberSaveException("서버 문제로 회원가입에 실패하였습니다. 관리자에게 문의하세요.");
         }
-    }
-
-    /**
-     * 애플리케이션 시작시 관리자 계정 생성
-     *
-     **/
-    public void createAdminAccount() {
-        memberRepository.save(Member.buildMember(
-                "admin",
-                bCryptPasswordEncoder.encode("a12345#"),
-                "admin",
-                "admin@naver.com",
-                "01012345678",
-                "서울 특별시",
-                "강남구",
-                "삼성동",
-                2,
-                50,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                null,
-                null,
-                MemberRole.USER,
-                null)
-        );
     }
 
     /**
@@ -216,14 +192,32 @@ public class MemberService {
     }
 
     /**
-     * 랭킹 조회
+     * 리뷰 보내기 요청 캐치
      *
-     * @return TOP3 RankingsDTO list
-     */
+     * @param gatherArticleId 모집글 Id
+     * @param reviewDTO 리뷰를 받는 유저 닉네임과 리뷰 타입을 담은 dto
+     * @param username 로그인 사용자 아이디
+     **/
     @Transactional
-    public List<MemberResponse.RankingsDTO> getTop3Rankings(){
+    public void sendReview(Long gatherArticleId, MemberRequest.ReviewDTO reviewDTO, String username) {
+        //리뷰 보내는 유저 조회
+        Member reviewer = memberRepository.findByUsername(username)
+                .orElseThrow(() -> new MemberRetrievalException("리뷰를 보내는 유저를 찾을 수 없습니다. 관리자에게 문의하세요."));
 
-        return memberRepository.findTop3RankingMembers();
+        // 리뷰를 보내는 유저가 해당 모집글에 참가했는지 확인
+        boolean isRelated = memberGatherArticleRepository.existsByGatherArticleIdAndMemberUsername(gatherArticleId, username);
+
+        if (!isRelated) {
+            throw new MemberNotJoinedGatherArticleException("잘못된 접근입니다.");
+        }
+
+        // 리뷰 받는 유저 조회
+        Member reviewee = memberRepository.findByNickname(reviewDTO.getNickname())
+                .orElseThrow(() -> new MemberRetrievalException("리뷰를 받는 유저를 찾을 수 없습니다. 관리자에게 문의하세요."));
+
+        ReviewType reviewType = ReviewType.valueOf(String.valueOf(reviewDTO.getReview()));
+
+        reviewee.assignReviewCount(reviewType);
+        reviewer.assignSendReviewCount();
     }
-
 }

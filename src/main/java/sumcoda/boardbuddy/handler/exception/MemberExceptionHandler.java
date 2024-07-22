@@ -37,8 +37,13 @@ public class MemberExceptionHandler {
         return buildErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(MemberNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMemberNotFoundException(MemberNotFoundException e) {
+    @ExceptionHandler(sumcoda.boardbuddy.exception.member.MemberNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMemberNotFoundException(sumcoda.boardbuddy.exception.member.MemberNotFoundException e) {
+        return buildFailureResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(sumcoda.boardbuddy.exception.member.MemberNotJoinedGatherArticleException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMemberNotJoinedGatherArticleException(sumcoda.boardbuddy.exception.member.MemberNotJoinedGatherArticleException e) {
         return buildFailureResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 }
