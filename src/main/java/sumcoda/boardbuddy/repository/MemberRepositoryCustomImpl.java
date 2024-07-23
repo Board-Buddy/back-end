@@ -5,11 +5,16 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import sumcoda.boardbuddy.dto.AuthResponse;
 import sumcoda.boardbuddy.dto.MemberResponse;
+import sumcoda.boardbuddy.entity.Member;
+import sumcoda.boardbuddy.enumerate.GatherArticleRole;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static sumcoda.boardbuddy.entity.QComment.*;
 import static sumcoda.boardbuddy.entity.QMember.*;
+import static sumcoda.boardbuddy.entity.QMemberGatherArticle.*;
 import static sumcoda.boardbuddy.entity.QProfileImage.*;
 
 @RequiredArgsConstructor
@@ -59,6 +64,35 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
                 .where(member.rank.isNotNull())
                 .orderBy(member.rank.asc())
                 .limit(3)
+                .fetch();
+    }
+
+    // 지난 달에 쓴 모집글 갯수 세기
+    @Override
+    public long countGatherArticlesByMember(Member member, LocalDateTime startOfLastMonth, LocalDateTime endOfLastMonth) {
+        return jpaQueryFactory.select(memberGatherArticle.count())
+                .from(memberGatherArticle)
+                .where(memberGatherArticle.member.eq(member)
+                        .and(memberGatherArticle.gatherArticleRole.eq(GatherArticleRole.AUTHOR))
+                        .and(memberGatherArticle.gatherArticle.createdAt.between(startOfLastMonth, endOfLastMonth)))
+                .fetchOne();
+    }
+
+    // 지난 달에 쓴 댓글 갯수 세기
+    @Override
+    public long countCommentsByMember(Member member, LocalDateTime startOfLastMonth, LocalDateTime endOfLastMonth) {
+        return jpaQueryFactory.select(comment.count())
+                .from(comment)
+                .where(comment.member.eq(member)
+                        .and(comment.createdAt.between(startOfLastMonth, endOfLastMonth)))
+                .fetchOne();
+    }
+
+    // 점수로 정렬
+    @Override
+    public List<Member> findAllOrderedByRankScore() {
+        return jpaQueryFactory.selectFrom(member)
+                .orderBy(member.rankScore.desc())
                 .fetch();
     }
 
