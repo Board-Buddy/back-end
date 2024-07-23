@@ -1,6 +1,8 @@
 package sumcoda.boardbuddy.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,18 +12,24 @@ import sumcoda.boardbuddy.dto.NearPublicDistrictResponse;
 import sumcoda.boardbuddy.dto.PublicDistrictResponse;
 import sumcoda.boardbuddy.entity.Member;
 import sumcoda.boardbuddy.enumerate.MemberRole;
+import sumcoda.boardbuddy.enumerate.RankScorePoints;
 import sumcoda.boardbuddy.enumerate.ReviewType;
 import sumcoda.boardbuddy.exception.member.*;
 import sumcoda.boardbuddy.exception.publicDistrict.PublicDistrictNotFoundException;
+import sumcoda.boardbuddy.repository.MemberJdbcRepository;
 import sumcoda.boardbuddy.repository.MemberRepository;
 import sumcoda.boardbuddy.repository.memberGatherArticle.MemberGatherArticleRepository;
 import sumcoda.boardbuddy.repository.publicDistrict.PublicDistrictRepository;
 
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class MemberService {
@@ -33,6 +41,8 @@ public class MemberService {
     private final NearPublicDistrictService nearPublicDistrictService;
 
     private final MemberGatherArticleRepository memberGatherArticleRepository;
+
+    private final MemberJdbcRepository memberJdbcRepository;
 
     // 비밀번호를 암호화 하기 위한 필드
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
@@ -108,6 +118,7 @@ public class MemberService {
                 0,
                 null,
                 null,
+                0.0,
                 MemberRole.USER,
                 null)).getId();
 
@@ -150,6 +161,7 @@ public class MemberService {
                 0,
                 null,
                 null,
+                0.0,
                 MemberRole.USER,
                 null)
         );
@@ -286,4 +298,88 @@ public class MemberService {
         reviewee.assignReviewCount(reviewType);
         reviewer.assignSendReviewCount();
     }
+
+    /**
+     * 랭킹 집계 - 매월 1일 00시 스케줄링
+     *
+     */
+    @Transactional
+    @Scheduled(cron = "0 21 23 23 * ?") // 매월 1일 00시
+    public void calculateMonthlyRankings() {
+
+        log.info("Ranking calculation started.");
+
+        LocalDateTime startOfLastMonth = getStartOfLastMonth();
+        LocalDateTime endOfLastMonth = getEndOfLastMonth();
+
+        List<Member> members = memberRepository.findAll();
+        Map<Long, Double> memberScores = new HashMap<>();
+
+        // 점수 계산
+        for (Member member : members) {
+          // 지난 달 모집글 갯수
+          long gatherArticleCount = memberRepository.countGatherArticlesByMember(member, startOfLastMonth, endOfLastMonth);
+          // 지난 달 댓글 갯수
+          long commentCount = memberRepository.countCommentsByMember(member, startOfLastMonth, endOfLastMonth);
+          // 후기 카운트, 리뷰 보낸 횟수 합하여 점수 계산
+          double rankScore = calculateRankScore(member, gatherArticleCount, commentCount);
+          memberScores.put(member.getId(), rankScore);
+        }
+
+        // 점수 업데이트
+        memberJdbcRepository.updateMemberRankScores(memberScores);
+
+        // 점수 별로 정렬
+        List<Member> orderedByScoreMembers = memberRepository.findAllOrderedByRankScore();
+
+        // 랭킹 업데이트
+        Map<Long, Integer> rankUpdateMap = new HashMap<>();
+
+        for (int i = 0; i < orderedByScoreMembers.size(); i++) {
+          // TODO : 1 ~ 3등 뱃지 부여
+          Member member = orderedByScoreMembers.get(i);
+          if (i == 0) {
+            rankUpdateMap.put(member.getId(), 1);
+          } else if (i == 1) {
+            rankUpdateMap.put(member.getId(), 2);
+          } else if (i == 2) {
+            rankUpdateMap.put(member.getId(), 3);
+          } else {
+            rankUpdateMap.put(member.getId(), null);
+          }
+        }
+
+        // 랭킹 업데이트
+        memberJdbcRepository.updateMemberRanks(rankUpdateMap);
+
+        // 후기 카운트, 보낸 리뷰 카운트 초기화
+        memberJdbcRepository.resetMonthlyCounts();
+
+    }
+
+    // 지난 달 시작일
+    private LocalDateTime getStartOfLastMonth() {
+        YearMonth lastMonth = YearMonth.now().minusMonths(1);
+        return lastMonth.atDay(1).atStartOfDay();
+    }
+
+    // 지난 달 종료일
+    private LocalDateTime getEndOfLastMonth() {
+        YearMonth lastMonth = YearMonth.now().minusMonths(1);
+        return lastMonth.atEndOfMonth().atTime(23, 59, 59);
+    }
+
+    // 점수 계산
+    private double calculateRankScore(Member member, long gatherArticleCount, long commentCount) {
+        double score = 0.0;
+        score += member.getMonthlyExcellentCount() * RankScorePoints.EXCELLENT_REVIEW_SCORE.getScore();
+        score += member.getMonthlyGoodCount() * RankScorePoints.GOOD_REVIEW_SCORE.getScore();
+        score += member.getMonthlyBadCount() * RankScorePoints.BAD_REVIEW_SCORE.getScore();
+        score += member.getMonthlyNoShowCount() * RankScorePoints.NOSHOW_REVIEW_SCORE.getScore();
+        score += member.getMonthlySendReviewCount() * RankScorePoints.SEND_REVIEW_SCORE.getScore();
+        score += gatherArticleCount * RankScorePoints.GATHER_ARTICLE_SCORE.getScore();
+        score += commentCount * RankScorePoints.COMMENT_SCORE.getScore();
+        return score;
+    }
+
 }
