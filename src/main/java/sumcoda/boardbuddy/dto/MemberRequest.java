@@ -126,5 +126,26 @@ public class MemberRequest {
             this.review = review;
         }
     }
+
+    @Getter
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    public static class UpdateProfileDTO {
+
+        private String nickname;
+
+        private String password;
+
+        private String phoneNumber;
+
+        private String description;
+
+        @Builder
+        public UpdateProfileDTO(String nickname, String password, String phoneNumber, String description) {
+            this.nickname = nickname;
+            this.password = password;
+            this.phoneNumber = phoneNumber;
+            this.description = description;
+        }
+    }
 }
 
