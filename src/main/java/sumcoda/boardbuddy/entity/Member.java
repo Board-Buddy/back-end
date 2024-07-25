@@ -271,6 +271,12 @@ public class Member {
         this.phoneNumber = phoneNumber;
     }
 
+    public void assignNickname(String nickname) { this.nickname = nickname; }
+
+    public void assignPassword(String password) { this.password = password; }
+
+    public void assignDescription(String description) { this.description = description; }
+
     public void assignSido(String sido) {
         this.sido = sido;
     }
