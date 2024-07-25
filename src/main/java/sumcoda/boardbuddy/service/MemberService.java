@@ -4,19 +4,21 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sumcoda.boardbuddy.dto.MemberRequest;
-import sumcoda.boardbuddy.dto.MemberResponse;
-import sumcoda.boardbuddy.dto.NearPublicDistrictResponse;
-import sumcoda.boardbuddy.dto.PublicDistrictResponse;
+import org.springframework.web.multipart.MultipartFile;
+import sumcoda.boardbuddy.dto.*;
 import sumcoda.boardbuddy.entity.Member;
+import sumcoda.boardbuddy.entity.ProfileImage;
 import sumcoda.boardbuddy.enumerate.MemberRole;
 import sumcoda.boardbuddy.enumerate.ReviewType;
 import sumcoda.boardbuddy.exception.member.*;
 import sumcoda.boardbuddy.exception.publicDistrict.PublicDistrictRetrievalException;
 import sumcoda.boardbuddy.repository.MemberRepository;
+import sumcoda.boardbuddy.repository.ProfileImageRepository;
 import sumcoda.boardbuddy.repository.memberGatherArticle.MemberGatherArticleRepository;
 import sumcoda.boardbuddy.repository.publicDistrict.PublicDistrictRepository;
+import sumcoda.boardbuddy.util.FileStorageUtil;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +35,8 @@ public class MemberService {
     private final NearPublicDistrictService nearPublicDistrictService;
 
     private final MemberGatherArticleRepository memberGatherArticleRepository;
+
+    private final ProfileImageRepository profileImageRepository;
 
     // 비밀번호를 암호화 하기 위한 필드
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
@@ -351,5 +355,67 @@ public class MemberService {
     public MemberResponse.ProfileInfosDTO getMemberProfileByNickname(String nickname) {
         return memberRepository.findMemberProfileByNickname(nickname)
                 .orElseThrow(() -> new MemberRetrievalException("유저를 찾을 수 없습니다. 관리자에게 문의하세요."));
+    }
+
+    /**
+     * 프로필 수정 요청 캐치
+     *
+     * @param username 유저 아이디
+     * @param updateProfileDTO 수정할 정보가 담겨있는 DTO
+     * @param profileImageFile 수정할 프로필 이미지 파일
+     **/
+    @Transactional
+    public void updateProfile(String username, MemberRequest.UpdateProfileDTO updateProfileDTO, MultipartFile profileImageFile) {
+        // 유저 아이디로 조회
+        Member member = memberRepository.findByUsername(username)
+                .orElseThrow(() -> new MemberRetrievalException("유저를 찾을 수 없습니다. 관리자에게 문의하세요."));
+
+        // 닉네임이 null이 아니면 업데이트
+        if (updateProfileDTO.getNickname() != null) {
+            member.assignNickname(updateProfileDTO.getNickname());
+        }
+
+        // 비밀번호가 null이 아니면 암호화 후 업데이트
+        if (updateProfileDTO.getPassword() != null && !updateProfileDTO.getPassword().isEmpty()) {
+            member.assignPassword(bCryptPasswordEncoder.encode(updateProfileDTO.getPassword()));
+        }
+
+        // 핸드폰 번호가 null이 아니면 업데이트
+        if (updateProfileDTO.getPhoneNumber() != null) {
+            member.assignPhoneNumber(updateProfileDTO.getPhoneNumber());
+        }
+
+        // 자기소개가 null이 아니면 업데이트
+        if (updateProfileDTO.getDescription() != null) {
+            member.assignDescription(updateProfileDTO.getDescription());
+        }
+
+        if (profileImageFile == null || profileImageFile.isEmpty()) {
+            member.assignProfileImage(null);
+        } else {
+            try {
+                if (!profileImageFile.isEmpty()) {
+                    // 이미지 파일 형식 검증
+                    String contentType = profileImageFile.getContentType();
+                    if (contentType != null && !contentType.startsWith("multipart/form-data")) {
+                        throw new InvalidFileFormatException("지원되지 않는 파일 형식입니다.");
+                    }
+
+                    FileDTO fileDTO = FileStorageUtil.saveFile(profileImageFile);
+                    String profileImageUrl = FileStorageUtil.getLocalStoreDir(fileDTO.getSavedFilename());
+
+                    ProfileImage newProfileImage = ProfileImage.buildProfileImage(
+                            fileDTO.getOriginalFilename(),
+                            fileDTO.getSavedFilename(),
+                            profileImageUrl
+                    );
+
+                    profileImageRepository.save(newProfileImage);
+                    member.assignProfileImage(newProfileImage);
+                }
+            } catch (IOException e) {
+                throw new ProfileImageSaveException("프로필 이미지를 저장하는 동안 오류가 발생했습니다.");
+            }
+        }
     }
 }

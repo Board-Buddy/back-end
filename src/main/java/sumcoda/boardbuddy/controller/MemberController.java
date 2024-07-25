@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import sumcoda.boardbuddy.dto.MemberRequest;
 import sumcoda.boardbuddy.dto.MemberResponse;
 import sumcoda.boardbuddy.dto.NearPublicDistrictResponse;
@@ -195,5 +196,25 @@ public class MemberController {
         MemberResponse.ProfileInfosDTO profileInfosDTO = memberService.getMemberProfileByNickname(nickname);
 
         return buildSuccessResponseWithPairKeyData("profile", profileInfosDTO, "프로필이 조회되었습니다.", HttpStatus.OK);
+    }
+
+    /**
+     * 프로필 수정 요청 캐치
+     *
+     * @param username         유저 아이디
+     * @param updateProfileDTO 수정할 정보가 담겨있는 DTO
+     * @param profileImageFile 수정할 프로필 이미지 파일
+     * @return 프로필 조회가 성공했다면 약속된 SuccessResponse 반환
+     **/
+    @PutMapping("/api/profiles")
+    public ResponseEntity<ApiResponse<Void>> updateProfile(
+            @RequestAttribute String username,
+            @RequestPart(value = "UpdateProfileDTO") MemberRequest.UpdateProfileDTO updateProfileDTO,
+            @RequestPart(value = "profileImageFile", required = false) MultipartFile profileImageFile) {
+        log.info("update Profile is working");
+
+        memberService.updateProfile(username, updateProfileDTO, profileImageFile);
+
+        return buildSuccessResponseWithoutData("프로필이 수정되었습니다.", HttpStatus.OK);
     }
 }
