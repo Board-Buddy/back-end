@@ -5,17 +5,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import sumcoda.boardbuddy.dto.MemberRequest;
 import sumcoda.boardbuddy.dto.MemberResponse;
 import sumcoda.boardbuddy.dto.NearPublicDistrictResponse;
-import sumcoda.boardbuddy.dto.auth.oauth2.CustomOAuth2User;
 import sumcoda.boardbuddy.dto.common.ApiResponse;
-import sumcoda.boardbuddy.exception.auth.AuthenticationMissingException;
 import sumcoda.boardbuddy.service.MemberService;
+import sumcoda.boardbuddy.util.AuthUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -29,6 +26,7 @@ import static sumcoda.boardbuddy.builder.ResponseBuilder.buildSuccessResponseWit
 public class MemberController {
 
     private final MemberService memberService;
+    private final AuthUtil authUtil;
 
     /**
      * 아이디 중복 확인 요청
@@ -86,28 +84,10 @@ public class MemberController {
      **/
     @PostMapping(value = "/api/auth/oauth2/register")
     public ResponseEntity<ApiResponse<Void>> oAuth2Register(@RequestBody MemberRequest.OAuth2RegisterDTO oAuth2RegisterDTO,
-//                                                            @RequestAttribute String username
-                                                            Authentication authentication
-    ) {
+                                                            Authentication authentication) {
         log.info("social register is working");
-
-        if (authentication == null) {
-            throw new AuthenticationMissingException("유효하지 않은 사용자의 요청입니다.(인터셉터 동작)");
-        }
-
-        String username;
-
-        // OAuth2.0 사용자
-        if (authentication instanceof OAuth2AuthenticationToken) {
-            CustomOAuth2User oauthUser = (CustomOAuth2User) authentication.getPrincipal();
-            username = oauthUser.getUsername();
-
-            // 그외 사용자
-        } else {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            username = userDetails.getUsername();
-        }
-        log.info(username);
+        String username = authUtil.getUserNameByLoginType(authentication);
+        log.info("######################### username: " + username + " ######################################" );
 
         memberService.registerOAuth2Member(oAuth2RegisterDTO, username);
 
