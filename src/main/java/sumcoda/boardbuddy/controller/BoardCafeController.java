@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import sumcoda.boardbuddy.dto.BoardCafeRequest;
 import sumcoda.boardbuddy.dto.BoardCafeResponse;
 import sumcoda.boardbuddy.dto.common.ApiResponse;
 import sumcoda.boardbuddy.service.BoardCafeService;
@@ -32,7 +31,7 @@ public class BoardCafeController {
      * @param y 위도
      * @param radius 반경 (단위: 미터)
      * @param username 사용자 이름
-     * @return 보드게임 카페 목록을 포함한 ApiResponse 객체
+     * @return 보드게임 카페 리스트
      */
     @GetMapping("/api/board-cafes")
     public ResponseEntity<ApiResponse<Map<String, List<BoardCafeResponse.InfoDTO>>>> getBoardCafes(
@@ -42,13 +41,7 @@ public class BoardCafeController {
             @RequestAttribute String username) {
         log.info("getBoardCafes is working");
 
-        List<BoardCafeResponse.InfoDTO> cafes = boardCafeService.getBoardCafes(
-                BoardCafeRequest.LocationDTO.builder()
-                        .x(x)
-                        .y(y)
-                        .radius(radius)
-                        .build()
-                , username);
+        List<BoardCafeResponse.InfoDTO> cafes = boardCafeService.getBoardCafes(x, y, radius, username);
 
         return buildSuccessResponseWithPairKeyData("cafes", cafes, "보드 게임 카페 조회를 성공하였습니다.", HttpStatus.OK);
     }

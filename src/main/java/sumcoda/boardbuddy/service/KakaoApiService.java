@@ -8,7 +8,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
-import sumcoda.boardbuddy.dto.BoardCafeRequest;
+import sumcoda.boardbuddy.dto.KakaoApiRequest;
 import sumcoda.boardbuddy.dto.BoardCafeResponse;
 import sumcoda.boardbuddy.dto.KakaoApiResponse;
 import sumcoda.boardbuddy.exception.kakaoApi.KakaoApiServerException;
@@ -46,9 +46,9 @@ public class KakaoApiService {
      * 키워드로 장소 검색 API 요청 처리 메서드
      *
      * @param locationDTO 검색 요청에 대한 위치 정보가 담긴 DTO
-     * @return 검색된 보드카페 정보 DTO 리스트
+     * @return 보드게임 카페 리스트
      */
-    public List<BoardCafeResponse.InfoDTO> requestBoardCafeKeywordSearch(BoardCafeRequest.LocationDTO locationDTO) {
+    public List<BoardCafeResponse.InfoDTO> requestBoardCafeKeywordSearch(KakaoApiRequest.LocationDTO locationDTO) {
 
         // 첫 페이지 번호 초기화
         int page = FIRST_PAGE_NUMBER;
