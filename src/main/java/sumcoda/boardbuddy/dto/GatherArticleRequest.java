@@ -113,19 +113,4 @@ public class GatherArticleRequest {
     }
 
   }
-
-  @Getter
-  @NoArgsConstructor(access = AccessLevel.PROTECTED)
-  public static class ReadListDTO {
-    private Integer page;
-    private String status;
-    private String sort;
-
-    @Builder
-    public ReadListDTO(Integer page, String status, String sort) {
-      this.page = page;
-      this.status = status;
-      this.sort = sort;
-    }
-  }
 }

@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-public class BoardCafeRequest {
+public class KakaoApiRequest {
 
     @Getter
     @NoArgsConstructor(access = AccessLevel.PROTECTED)
