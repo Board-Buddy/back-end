@@ -311,16 +311,13 @@ public class GatherArticleService {
     /**
      * 모집글 리스트 조회
      *
-     * @param readListDTO 모집글 리스트 조회 요청 DTO
-     * @param username    사용자 이름
+     * @param page     페이지 번호
+     * @param status   모집 상태 (옵션)
+     * @param sort     정렬 기준 (옵션)
+     * @param username 사용자 이름
      * @return 모집글 리스트 DTO
      */
-    public GatherArticleResponse.ReadListDTO getGatherArticles(GatherArticleRequest.ReadListDTO readListDTO, String username) {
-
-        // 사용자가 입력한 정렬 기준
-        String sort = readListDTO.getSort();
-        // 사용자가 입력한 모집글 상태
-        String status = readListDTO.getStatus();
+    public GatherArticleResponse.ReadListDTO getGatherArticles(Integer page, String status, String sort, String username) {
 
         // 정렬 기준 검증
         if (sort != null && !sort.equals(GatherArticleStatus.SOON.getValue())) {
@@ -363,7 +360,7 @@ public class GatherArticleService {
         });
 
         // 페이징 정보 생성
-        Pageable pageable = PageRequest.of(readListDTO.getPage(), PAGE_SIZE);
+        Pageable pageable = PageRequest.of(page, PAGE_SIZE);
 
         // 모집글 리스트 조회
         Slice<GatherArticleResponse.ReadSliceDTO> readSliceDTO = gatherArticleRepository.findReadSliceDTOByLocationAndStatusAndSort(

@@ -131,17 +131,10 @@ public class GatherArticleController {
             @RequestParam Integer page,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String sort,
-            @RequestAttribute String username
-    ) {
+            @RequestAttribute String username) {
         log.info("getGatherArticles is working");
 
-        GatherArticleResponse.ReadListDTO posts = gatherArticleService.getGatherArticles(
-                GatherArticleRequest.ReadListDTO.builder()
-                        .page(page)
-                        .status(status)
-                        .sort(sort)
-                        .build()
-                , username);
+        GatherArticleResponse.ReadListDTO posts = gatherArticleService.getGatherArticles(page, status, sort, username);
 
         return buildSuccessResponseWithMultiplePairKeyData(posts, "모집글 리스트 조회를 성공하였습니다.", HttpStatus.OK);
     }
