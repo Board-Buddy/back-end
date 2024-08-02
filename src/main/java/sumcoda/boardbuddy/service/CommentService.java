@@ -89,9 +89,9 @@ public class CommentService {
      */
     public List<CommentResponse.CommentDTO> getComments(Long gatherArticleId, String username) {
 
-        // 사용자 검증
-        if (username == null) {
-            throw new MemberRetrievalException("댓글 조회 요청을 처리할 수 없습니다. 관리자에게 문의하세요.");
+        // 멤버 검증
+        if (!memberRepository.existsByUsername(username)) {
+            throw new MemberRetrievalException("서버 문제로 사용자의 정보를 찾을 수 없습니다. 관리자에게 문의하세요.");
         }
 
         // 모집글 검증
@@ -166,7 +166,7 @@ public class CommentService {
                 .orElseThrow(() -> new GatherArticleNotFoundException("존재하지 않는 모집글입니다."));
 
         // 댓글 검증
-        Comment comment = commentRepository.findById(commentId)
+        Comment comment = commentRepository.findCommentByCommentId(commentId)
                 .orElseThrow(() -> new CommentNotFoundException("존재하지 않는 댓글입니다."));
 
         // 모집글 안에 댓글이 있는지 검증
@@ -177,6 +177,14 @@ public class CommentService {
         // 작성자인지 검증
         if (!comment.getMember().getUsername().equals(userNameDTO.getUsername())) {
             throw new CommentAccessException("자신의 댓글만 삭제할 수 있습니다.");
+        }
+
+        // 자식 댓글 선언
+        List<Comment> children = comment.getChildren();
+
+        // 자식 댓글이 있으면 자식 댓글 먼저 삭제
+        if (!children.isEmpty()) {
+            commentRepository.deleteAllInBatch(children);
         }
 
         // 댓글 삭제
