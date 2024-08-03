@@ -70,4 +70,16 @@ public class CommentResponse {
                     .build();
         }
     }
+
+    @Getter
+    @NoArgsConstructor
+    public static class AuthorUsernameDTO {
+
+        private String username;
+
+        @Builder
+        public AuthorUsernameDTO(String username) {
+            this.username = username;
+        }
+    }
 }
