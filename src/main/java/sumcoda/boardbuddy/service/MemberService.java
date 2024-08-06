@@ -1,5 +1,6 @@
 package sumcoda.boardbuddy.service;
 
+import com.amazonaws.services.s3.AmazonS3Client;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -40,6 +41,7 @@ public class MemberService {
 
     // 비밀번호를 암호화 하기 위한 필드
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
+//    private final AmazonS3Client amazonS3Client;
 
     /**
      * 아이디 중복검사
@@ -357,6 +359,9 @@ public class MemberService {
             }
             try {
                 FileDTO fileDTO = FileStorageUtil.saveFile(profileImageFile);
+                File file = fileDTO.getFile();
+
+                // 프로필 이미지 로컬 저장 시 필요
                 String profileImageUrl = FileStorageUtil.getLocalStoreDir(fileDTO.getSavedFilename());
 
                 ProfileImage newProfileImage = ProfileImage.buildProfileImage(
@@ -368,8 +373,32 @@ public class MemberService {
                 profileImageRepository.save(newProfileImage);
                 member.assignProfileImage(newProfileImage);
 
-                File file = fileDTO.getFile();
                 file.delete();
+
+//                 // 프로필 이미지 S3 저장 시 필요
+//                String bucketName = "";
+//                ProfileImage existingProfileImage = member.getProfileImage();
+//
+//                // 기존 프로필 이미지가 있다면 S3에서 삭제
+//                if (existingProfileImage != null) {
+//                    amazonS3Client.deleteObject(bucketName, existingProfileImage.getSavedFilename());
+//                }
+//
+//                amazonS3Client.putObject(bucketName, fileDTO.getSavedFilename(), file);
+//
+//                String awsS3URL = amazonS3Client.getUrl(bucketName, fileDTO.getSavedFilename()).toString();
+//
+//                ProfileImage newProfileImage = ProfileImage.buildProfileImage(
+//                        fileDTO.getOriginalFilename(),
+//                        fileDTO.getSavedFilename(),
+//                        awsS3URL
+//                );
+//
+//                profileImageRepository.save(newProfileImage);
+//                member.assignProfileImage(newProfileImage);
+//
+//                file.delete();
+
             } catch (IOException e) {
                 throw new ProfileImageSaveException("프로필 이미지를 저장하는 동안 오류가 발생했습니다.");
             }
