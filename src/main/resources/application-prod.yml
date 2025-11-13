@@ -1,6 +1,4 @@
 spring:
-  config:
-    location: file:/config/
 
   datasource:
     url: ${PROD_DB_URL}
@@ -10,12 +8,12 @@ spring:
     hikari:
       connection-timeout: 3000
       maximum-pool-size: 10
+
   jpa:
     hibernate:
 #      ddl-auto: create
      # TODO : db 유지를 위해선, 이후에 none으로 고정해야 함.
       ddl-auto: none
-
 
   data:
     redis:
@@ -61,4 +59,3 @@ server:
         secure: true
         http-only: true
         same-site: lax
-
