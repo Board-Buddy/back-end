@@ -1,3 +1,150 @@
+#name: Deploy Spring Boot APP to Amazon Linux 2023
+#
+#on:
+#  push:
+#    branches:
+#      - main
+#
+#jobs:
+#  deploy:
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Checkout repository
+#        uses: actions/checkout@v3
+#
+#      - name: Set up JDK 21
+#        uses: actions/setup-java@v2
+#        with:
+#          java-version: '21'
+#          distribution: 'temurin'
+#
+#      - name: Build Spring Boot app with Gradle
+#        run: ./gradlew build -Dspring.profiles.active=common,prod
+#
+#      - name: Build Docker image
+#        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/boardbuddy:backend-latest -f Dockerfile .
+#
+#      - name: Docker Login
+#        run: echo ${{ secrets.DOCKERHUB_ACCESS_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+#
+#      - name: Push Docker image
+#        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/boardbuddy:backend-latest
+#
+#      - name: Add SSH Key
+#        uses: webfactory/ssh-agent@v0.5.3
+#        with:
+#          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+#
+#      - name: Create Spring APP environment variables file
+#        run: |
+#          cat > env.list <<EOF
+#          SPRING_DATASOURCE_URL=${{ secrets.PROD_DB_URL }}
+#          SPRING_DATASOURCE_USERNAME=${{ secrets.PROD_DB_USERNAME }}
+#          SPRING_DATASOURCE_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}
+#          SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY=${{ secrets.PROD_AWS_ACCESS_KEY }}
+#          SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY=${{ secrets.PROD_AWS_SECRET_KEY }}
+#          SPRING_CLOUD_AWS_S3_BUCKET_NAME=${{ secrets.PROD_S3_BUCKET_NAME }}
+#          SPRING_CLOUD_AWS_S3_BUCKET_REGION=${{ secrets.PROD_S3_BUCKET_REGION }}
+#          SPRING_DATA_REDIS_HOST=${{ secrets.PROD_REDIS_HOST }}
+#          SPRING_DATA_REDIS_PORT=${{ secrets.PROD_REDIS_PORT }}
+#          SPRING_DATA_REDIS_PASSWORD=${{ secrets.PROD_REDIS_PASSWORD }}
+#          SPRING_COOL_SMS_API_KEY=${{ secrets.PROD_SMS_API_KEY }}
+#          SPRING_COOL_SMS_API_SECRET=${{ secrets.PROD_SMS_API_SECRET }}
+#          SPRING_COOL_SMS_SENDER_NUMBER=${{ secrets.PROD_SMS_SENDER_NUMBER }}
+#          SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }}
+#          SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }}
+#          SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+#          SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+#          SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}
+#          SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
+#          SPRING_CLOUD_AWS_CLOUD_FRONT_DOMAIN=${{ secrets.PROD_CLOUD_FRONT_DOMAIN}}
+#          SPRING_CLOUD_AWS_CLOUD_FRONT_KEY_PAIR_ID=${{ secrets.PROD_CLOUD_FRONT_KEY_PAIR_ID}}
+#          SPRING_CLOUD_AWS_CLOUD_FRONT_URL_EXPIRATION_MINUTES=${{ secrets.PROD_CLOUD_FRONT_URL_EXPIRATION_MINUTES}}
+#          SPRING_CLOUD_AWS_CLOUD_FRONT_SECRET_REGION=${{ secrets.PROD_CLOUD_FRONT_SECRET_REGION}}
+#          SPRING_CLOUD_AWS_CLOUD_FRONT_SECRET_NAME=${{ secrets.PROD_CLOUD_FRONT_SECRET_NAME}}
+#          SPRING_CLOUD_AWS_CLOUD_FRONT_SECRET_KEY_VALUE_NAME=${{ secrets.PROD_CLOUD_FRONT_SECRET_KEY_VALUE_NAME}}
+#          SPRING_PROFILES_ACTIVE=common,prod
+#          EOF
+#
+#      - name: Create nginx environment variables file
+#        run: |
+#          cat > nginx.env.list <<EOF
+#          NGINX_SSL_CERT_PATH=${{ secrets.NGINX_SSL_CERT_PATH }}
+#          NGINX_SSL_KEY_PATH=${{ secrets.NGINX_SSL_KEY_PATH }}
+#          EOF
+#
+#      - name: Render nginx config
+#        run: |
+#          set -o allexport
+#          source nginx.env.list
+#          envsubst '${NGINX_SSL_CERT_PATH} ${NGINX_SSL_KEY_PATH}' < nginx.template.conf > default.conf
+#
+#      - name: Create Redis configuration
+#        run: |
+#          cat > redis.conf <<EOF
+#          bind ${{ secrets.PROD_REDIS_BIND_PORT }}
+#          port ${{ secrets.PROD_REDIS_PORT }}
+#          requirepass ${{ secrets.PROD_REDIS_PASSWORD }}
+#          protected-mode no
+#          EOF
+#
+#      - name: Transfer files to EC2
+#        run: |
+#          scp -o StrictHostKeyChecking=no src/main/resources/application-common.yml ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/application-common.yml
+#          scp -o StrictHostKeyChecking=no src/main/resources/application-prod.yml ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/application-prod.yml
+#          scp -o StrictHostKeyChecking=no env.list ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/env.list
+#          scp -o StrictHostKeyChecking=no docker-compose.prod.yml ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/docker-compose.yml
+#          scp -o StrictHostKeyChecking=no redis.conf ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/redis.conf
+#          scp -o StrictHostKeyChecking=no default.conf ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/default.conf
+#
+#      - name: Deploy to EC2
+#        run: |
+#          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 ec2-user@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
+#
+#          # Docker 로그인 및 이미지 업데이트
+#          sudo docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+#          sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/boardbuddy:backend-latest
+#
+#          # Docker 네트워크 생성
+#          sudo docker network create spring-boot-app-network || true
+#
+#          # Redis 컨테이너 재시작
+#          if sudo docker ps -a -q -f name=redis; then
+#            sudo docker stop redis && sudo docker rm redis
+#          fi
+#          sudo docker run -d --name redis \
+#            -v /home/ec2-user/redis.conf:/usr/local/etc/redis/redis.conf \
+#            --network spring-boot-app-network \
+#            -e REDIS_PASSWORD=${{ secrets.PROD_REDIS_PASSWORD }} \
+#            -p 6379:${{ secrets.PROD_REDIS_PORT }} redis:latest redis-server /usr/local/etc/redis/redis.conf
+#
+#          # Spring Boot 애플리케이션 컨테이너 재시작
+#          if sudo docker ps -a -q -f name=spring-boot-app; then
+#            sudo docker stop spring-boot-app && sudo docker rm spring-boot-app
+#          fi
+#          sudo docker run -d --name spring-boot-app \
+#            --env-file /home/ec2-user/env.list \
+#            -v /home/ec2-user/application-common.yml:/config/application-common.yml \
+#            -v /home/ec2-user/application-prod.yml:/config/application-prod.yml \
+#            --network spring-boot-app-network \
+#            -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/boardbuddy:backend-latest \
+#            --spring.config.location=/config/application-common.yml,/config/application-prod.yml
+#
+#          # Nginx 설정 반영
+#          sudo mv /home/ec2-user/default.conf /etc/nginx/conf.d/default.conf
+#          sudo nginx -t
+#          sudo systemctl restart nginx
+#
+#          # Certbot 설치 및 인증서 갱신
+#          sudo dnf install -y certbot python3-certbot-nginx
+#          sudo certbot renew --nginx --quiet
+#
+#          # 상태 확인
+#          sudo docker ps -a
+#          sudo docker logs spring-boot-app
+#          EOF
+
 name: Deploy Spring Boot APP to Amazon Linux 2023
 
 on:
@@ -39,32 +186,41 @@ jobs:
       - name: Create Spring APP environment variables file
         run: |
           cat > env.list <<EOF
-          SPRING_DATASOURCE_URL=${{ secrets.PROD_DB_URL }}
-          SPRING_DATASOURCE_USERNAME=${{ secrets.PROD_DB_USERNAME }}
-          SPRING_DATASOURCE_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}
-          SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY=${{ secrets.PROD_AWS_ACCESS_KEY }}
-          SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY=${{ secrets.PROD_AWS_SECRET_KEY }}
+               APP_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/boardbuddy:backend-latest
+          
+               PROD_DB_NAME=${{ secrets.PROD_DB_NAME }}
+               PROD_DB_USERNAME=${{ secrets.PROD_DB_USERNAME }}
+               PROD_DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}
+               PROD_DB_ROOT_PASSWORD=${{ secrets.PROD_DB_ROOT_PASSWORD }}
+               PROD_DB_URL=jdbc:mariadb://mariadb:3306/${{ secrets.PROD_DB_NAME }}?useUnicode=true&characterEncoding=utf8mb4
+          
+               PROD_REDIS_HOST=redis
+               PROD_REDIS_PORT=${{ secrets.PROD_REDIS_PORT }}
+               PROD_REDIS_PASSWORD=${{ secrets.PROD_REDIS_PASSWORD }}
+          
+          
           SPRING_CLOUD_AWS_S3_BUCKET_NAME=${{ secrets.PROD_S3_BUCKET_NAME }}
           SPRING_CLOUD_AWS_S3_BUCKET_REGION=${{ secrets.PROD_S3_BUCKET_REGION }}
-          SPRING_DATA_REDIS_HOST=${{ secrets.PROD_REDIS_HOST }}
-          SPRING_DATA_REDIS_PORT=${{ secrets.PROD_REDIS_PORT }}
-          SPRING_DATA_REDIS_PASSWORD=${{ secrets.PROD_REDIS_PASSWORD }}
+
           SPRING_COOL_SMS_API_KEY=${{ secrets.PROD_SMS_API_KEY }}
           SPRING_COOL_SMS_API_SECRET=${{ secrets.PROD_SMS_API_SECRET }}
           SPRING_COOL_SMS_SENDER_NUMBER=${{ secrets.PROD_SMS_SENDER_NUMBER }}
+
           SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }}
           SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }}
           SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
           SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
           SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}
           SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
-          SPRING_CLOUD_AWS_CLOUD_FRONT_DOMAIN=${{ secrets.PROD_CLOUD_FRONT_DOMAIN}}
-          SPRING_CLOUD_AWS_CLOUD_FRONT_KEY_PAIR_ID=${{ secrets.PROD_CLOUD_FRONT_KEY_PAIR_ID}}
-          SPRING_CLOUD_AWS_CLOUD_FRONT_URL_EXPIRATION_MINUTES=${{ secrets.PROD_CLOUD_FRONT_URL_EXPIRATION_MINUTES}}
-          SPRING_CLOUD_AWS_CLOUD_FRONT_SECRET_REGION=${{ secrets.PROD_CLOUD_FRONT_SECRET_REGION}}
-          SPRING_CLOUD_AWS_CLOUD_FRONT_SECRET_NAME=${{ secrets.PROD_CLOUD_FRONT_SECRET_NAME}}
-          SPRING_CLOUD_AWS_CLOUD_FRONT_SECRET_KEY_VALUE_NAME=${{ secrets.PROD_CLOUD_FRONT_SECRET_KEY_VALUE_NAME}}
-          SPRING_PROFILES_ACTIVE=common,prod
+          
+               SPRING_CLOUD_AWS_CLOUD_FRONT_DOMAIN=${{ secrets.PROD_CLOUD_FRONT_DOMAIN }}
+               SPRING_CLOUD_AWS_CLOUD_FRONT_KEY_PAIR_ID=${{ secrets.PROD_CLOUD_FRONT_KEY_PAIR_ID }}
+               SPRING_CLOUD_AWS_CLOUD_FRONT_URL_EXPIRATION_MINUTES=${{ secrets.PROD_CLOUD_FRONT_URL_EXPIRATION_MINUTES }}
+               SPRING_CLOUD_AWS_CLOUD_FRONT_SECRET_REGION=${{ secrets.PROD_CLOUD_FRONT_SECRET_REGION }}
+               SPRING_CLOUD_AWS_CLOUD_FRONT_SECRET_NAME=${{ secrets.PROD_CLOUD_FRONT_SECRET_NAME }}
+               SPRING_CLOUD_AWS_CLOUD_FRONT_SECRET_KEY_VALUE_NAME=${{ secrets.PROD_CLOUD_FRONT_SECRET_KEY_VALUE_NAME }}
+          
+               SPRING_PROFILES_ACTIVE=common,prod
           EOF
 
       - name: Create nginx environment variables file
@@ -80,67 +236,33 @@ jobs:
           source nginx.env.list
           envsubst '${NGINX_SSL_CERT_PATH} ${NGINX_SSL_KEY_PATH}' < nginx.template.conf > default.conf
 
-      - name: Create Redis configuration
-        run: |
-          cat > redis.conf <<EOF
-          bind ${{ secrets.PROD_REDIS_BIND_PORT }}
-          port ${{ secrets.PROD_REDIS_PORT }}
-          requirepass ${{ secrets.PROD_REDIS_PASSWORD }}
-          protected-mode no
-          EOF
-
       - name: Transfer files to EC2
         run: |
           scp -o StrictHostKeyChecking=no src/main/resources/application-common.yml ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/application-common.yml
           scp -o StrictHostKeyChecking=no src/main/resources/application-prod.yml ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/application-prod.yml
           scp -o StrictHostKeyChecking=no env.list ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/env.list
           scp -o StrictHostKeyChecking=no docker-compose.prod.yml ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/docker-compose.yml
-          scp -o StrictHostKeyChecking=no redis.conf ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/redis.conf
           scp -o StrictHostKeyChecking=no default.conf ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/default.conf
 
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 ec2-user@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
+          set -e
 
-          # Docker 로그인 및 이미지 업데이트
+          cd /home/ec2-user
+
           sudo docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
           sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/boardbuddy:backend-latest
 
-          # Docker 네트워크 생성
-          sudo docker network create spring-boot-app-network || true
+          sudo docker compose --env-file /home/ec2-user/env.list -f /home/ec2-user/docker-compose.yml up -d --remove-orphans
 
-          # Redis 컨테이너 재시작
-          if sudo docker ps -a -q -f name=redis; then
-            sudo docker stop redis && sudo docker rm redis
-          fi
-          sudo docker run -d --name redis \
-            -v /home/ec2-user/redis.conf:/usr/local/etc/redis/redis.conf \
-            --network spring-boot-app-network \
-            -e REDIS_PASSWORD=${{ secrets.PROD_REDIS_PASSWORD }} \
-            -p 6379:${{ secrets.PROD_REDIS_PORT }} redis:latest redis-server /usr/local/etc/redis/redis.conf
-
-          # Spring Boot 애플리케이션 컨테이너 재시작
-          if sudo docker ps -a -q -f name=spring-boot-app; then
-            sudo docker stop spring-boot-app && sudo docker rm spring-boot-app
-          fi
-          sudo docker run -d --name spring-boot-app \
-            --env-file /home/ec2-user/env.list \
-            -v /home/ec2-user/application-common.yml:/config/application-common.yml \
-            -v /home/ec2-user/application-prod.yml:/config/application-prod.yml \
-            --network spring-boot-app-network \
-            -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/boardbuddy:backend-latest \
-            --spring.config.location=/config/application-common.yml,/config/application-prod.yml
-        
-          # Nginx 설정 반영
           sudo mv /home/ec2-user/default.conf /etc/nginx/conf.d/default.conf
           sudo nginx -t
           sudo systemctl restart nginx
 
-          # Certbot 설치 및 인증서 갱신
           sudo dnf install -y certbot python3-certbot-nginx
-          sudo certbot renew --nginx --quiet
+          sudo certbot renew --nginx --quiet || true
 
-          # 상태 확인
-          sudo docker ps -a
-          sudo docker logs spring-boot-app
+          sudo docker compose --env-file /home/ec2-user/env.list -f /home/ec2-user/docker-compose.yml ps
+          sudo docker compose --env-file /home/ec2-user/env.list -f /home/ec2-user/docker-compose.yml logs spring-boot-app --tail=200
           EOF

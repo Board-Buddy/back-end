@@ -20,18 +20,21 @@ public class InitializerConfig {
 
     private final BadgeImageService badgeImageService;
 
-    /**
-     * admin, test 계정 생성
-     */
+//    // 성능 개선용 코드
+//    private final RedisTemplate<String, String> chatMessageRedisZSetTemplate;
+//    private final RedisTemplate<String, byte[]> chatMessageRedisTemplate;
+
+//    private final TestDataSetInitializeService testDataSetInitializeService;
+
     @Bean
     public ApplicationRunner initializer() {
         return args -> {
 
             // 프로덕션 코드
-            // TODO: ddl-auto none 으로 수정후 아래 로직 비활성화
-//            memberService.createAdminAccount();
-//            memberService.createInitTestAccounts();
-//            badgeImageService.assignBadgesToInitTestMembers(YearMonth.now().minusMonths(1));
+            // ddl-auto none 으로 수정후 아래 로직 비활성화
+            memberService.createAdminAccount();
+            memberService.createInitTestAccounts();
+            badgeImageService.assignBadgesToInitTestMembers(YearMonth.now().minusMonths(1));
         };
     }
 

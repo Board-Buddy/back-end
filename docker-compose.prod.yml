@@ -1,32 +1,103 @@
-version: '2.27.3'
+#version: '2.27.3'
+#
+#services:
+#  redis:
+#    image: redis:latest
+#    ports:
+#      - "6379:6379"
+#    networks:
+#      - spring-boot-app-network
+#    volumes:
+#      - ./redis.conf:/usr/local/etc/redis/redis.conf
+#    environment:
+#      PROD_REDIS_PASSWORD: ${PROD_REDIS_PASSWORD}
+#    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+#
+#  spring-boot-app:
+#    build:
+#      context: .
+#    ports:
+#      - "8080:8080"
+#    networks:
+#      - spring-boot-app-network
+#    depends_on:
+#      - redis
+#    environment:
+#      PROD_REDIS_HOST: ${PROD_REDIS_HOST}
+#      PROD_REDIS_PORT: ${PROD_REDIS_PORT}
+#      PROD_REDIS_PASSWORD: ${PROD_REDIS_PASSWORD}
+#
+#networks:
+#  spring-boot-app-network:
+#    driver: bridge
 
 services:
-  redis:
-    image: redis:latest
-    ports:
-      - "6379:6379"
+  mariadb:
+    image: mariadb:11.4
+    container_name: mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${PROD_DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${PROD_DB_NAME}
+      MARIADB_USER: ${PROD_DB_USERNAME}
+      MARIADB_PASSWORD: ${PROD_DB_PASSWORD}
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mariadb-data:/var/lib/mysql
     networks:
       - spring-boot-app-network
-    volumes:
-      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: [ "CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -p$$MARIADB_ROOT_PASSWORD --silent" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
     environment:
       PROD_REDIS_PASSWORD: ${PROD_REDIS_PASSWORD}
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    command: [ "sh", "-c", "redis-server --appendonly yes --requirepass \"$${PROD_REDIS_PASSWORD}\"" ]
+    volumes:
+      - redis-data:/data
+    networks:
+      - spring-boot-app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli -a \"$${PROD_REDIS_PASSWORD}\" ping | grep PONG" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   spring-boot-app:
-    build:
-      context: .
+    image: ${APP_IMAGE}
+    container_name: spring-boot-app
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./env.list
     ports:
       - "8080:8080"
     networks:
       - spring-boot-app-network
-    depends_on:
-      - redis
-    environment:
-      PROD_REDIS_HOST: ${PROD_REDIS_HOST}
-      PROD_REDIS_PORT: ${PROD_REDIS_PORT}
-      PROD_REDIS_PASSWORD: ${PROD_REDIS_PASSWORD}
+    volumes:
+      - ./application-common.yml:/config/application-common.yml:ro
+      - ./application-prod.yml:/config/application-prod.yml:ro
+    command: [ "--spring.config.location=/config/application-common.yml,/config/application-prod.yml" ]
 
 networks:
   spring-boot-app-network:
     driver: bridge
+
+volumes:
+  mariadb-data:
+  redis-data:
