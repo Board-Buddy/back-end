@@ -40,11 +40,11 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         // 기존 소셜 로그인 사용자인 경우
         if (Boolean.TRUE.equals(isPhoneNumberVerifiedMember)) {
             response.setStatus(HttpStatus.OK.value());
-            redirectStrategy.sendRedirect(request, response, "https://m.boardbuddi.com/login/oauth/callback?isLoginSucceed=true&isVerifiedMember=true&messageCode=0");
+            redirectStrategy.sendRedirect(request, response, "https://m.boredbuddi.com/login/oauth/callback?isLoginSucceed=true&isVerifiedMember=true&messageCode=0");
             // 신규 소셜 로그인 사용자인 경우
         } else {
             response.setStatus(HttpStatus.CREATED.value());
-            redirectStrategy.sendRedirect(request, response , "https://m.boardbuddi.com/login/oauth/callback?isLoginSucceed=true&isVerifiedMember=false&messageCode=0");
+            redirectStrategy.sendRedirect(request, response, "https://m.boredbuddi.com/login/oauth/callback?isLoginSucceed=true&isVerifiedMember=false&messageCode=0");
         }
     }
 

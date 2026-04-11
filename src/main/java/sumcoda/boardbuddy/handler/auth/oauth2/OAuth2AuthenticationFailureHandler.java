@@ -9,7 +9,6 @@ import org.springframework.security.authentication.AuthenticationCredentialsNotF
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
-
 import org.springframework.security.web.DefaultRedirectStrategy;
 import org.springframework.security.web.RedirectStrategy;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
@@ -45,7 +44,7 @@ public class OAuth2AuthenticationFailureHandler implements AuthenticationFailure
             messageCode = "9";
         }
 
-        redirectStrategy.sendRedirect(request, response, "https://m.boardbuddi.com/login/oauth/callback?isLoginSucceed=false&isVerifiedMember=false&messageCode=" + messageCode);
+        redirectStrategy.sendRedirect(request, response, "https://m.boredbuddi.com/login/oauth/callback?isLoginSucceed=false&isVerifiedMember=false&messageCode=" + messageCode);
     }
 
     private String getOAuth2MessageCode(String errorMessage) {

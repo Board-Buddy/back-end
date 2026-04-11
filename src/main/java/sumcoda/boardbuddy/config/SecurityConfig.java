@@ -20,8 +20,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import sumcoda.boardbuddy.handler.auth.*;
 import sumcoda.boardbuddy.filter.CustomAuthenticationFilter;
+import sumcoda.boardbuddy.handler.auth.*;
 import sumcoda.boardbuddy.handler.auth.oauth2.OAuth2AuthenticationFailureHandler;
 import sumcoda.boardbuddy.handler.auth.oauth2.OAuth2AuthenticationSuccessHandler;
 import sumcoda.boardbuddy.service.CustomOAuth2UserService;
@@ -57,7 +57,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // 허용할 출처 설정
-        configuration.setAllowedOriginPatterns(List.of("https://board-buddy-front-end.vercel.app", "https://m.boardbuddi.com", "http://localhost:3000"));
+        configuration.setAllowedOriginPatterns(List.of("https://board-buddy-front-end.vercel.app", "https://m.boredbuddi.com", "http://localhost:3000"));
 
         // 허용할 HTTP 메서드 설정
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
