@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Configuration;
 import sumcoda.boardbuddy.service.BadgeImageService;
 import sumcoda.boardbuddy.service.MemberService;
 
-import java.time.YearMonth;
 import java.util.TimeZone;
 
 
@@ -30,11 +29,20 @@ public class InitializerConfig {
     public ApplicationRunner initializer() {
         return args -> {
 
+//            // 성능 개선용 코드
+//            Set<String> keys = chatMessageRedisTemplate.keys("chat:*");
+//            if (!keys.isEmpty()) {
+//                chatMessageRedisZSetTemplate.delete(keys);
+//                chatMessageRedisTemplate.delete(keys);
+//            }
+//
+//            testDataSetInitializeService.initializeTestDataSet();
+
             // 프로덕션 코드
             // ddl-auto none 으로 수정후 아래 로직 비활성화
-            memberService.createAdminAccount();
-            memberService.createInitTestAccounts();
-            badgeImageService.assignBadgesToInitTestMembers(YearMonth.now().minusMonths(1));
+//            memberService.createAdminAccount();
+//            memberService.createInitTestAccounts();
+//            badgeImageService.assignBadgesToInitTestMembers(YearMonth.now().minusMonths(1));
         };
     }
 

@@ -10,9 +10,9 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create
+      #      ddl-auto: create
      # TODO : db 유지를 위해선, 이후에 none으로 고정해야 함.
-  #      ddl-auto: none
+      ddl-auto: none
 
   data:
     redis:
@@ -47,9 +47,9 @@ spring:
   quartz:
     job-store-type: jdbc
     jdbc:
-      initialize-schema: always
+      #      initialize-schema: always
       # TODO : quartz 테이블을 유지하기 위해선, 이후에 never 으로 고정해야 함.
-#      initialize-schema: never
+      initialize-schema: never
 
 server:
   servlet:
